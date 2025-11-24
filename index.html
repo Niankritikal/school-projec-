@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Основная страница сайта</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-image: url("pages/images/bgg.png");
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            width: 100%;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 50px;
+            font-size: 1.2rem;
+        }
+        
+        .sections-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            justify-items: center;
+        }
+        
+        .section-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 350px;
+            height: 400px; /* Фиксированная высота для всех карточек */
+        }
+        
+        .section-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+        }
+        
+        .card-image {
+            height: 180px; /* Фиксированная высота изображения */
+            width: 100%;
+            object-fit: cover;
+        }
+        
+        .card-content {
+            padding: 25px;
+            flex-grow: 1; /* Занимает оставшееся пространство */
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .card-title {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        
+        .card-description {
+            color: #7f8c8d;
+            line-height: 1.6;
+            flex-grow: 1; /* Занимает оставшееся пространство */
+        }
+        
+        .card-footer {
+            margin-top: 15px;
+            color: #3498db;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+        
+        .card-footer::after {
+            content: "→";
+            margin-left: 8px;
+            transition: transform 0.3s;
+        }
+        
+        .section-card:hover .card-footer::after {
+            transform: translateX(5px);
+        }
+        
+        /* Стили для демонстрации с одной карточкой */
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .control-btn {
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+        
+        .control-btn:hover {
+            background: #2980b9;
+        }
+        
+        @media (max-width: 768px) {
+            .sections-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .section-card {
+                height: 380px; /* Немного уменьшим высоту на мобильных */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Выберите категорию</h1>
+        <p class="subtitle">Выберите интересующую вас коллекцию для просмотра</p>
+        
+        <!-- Кнопки для демонстрации работы с разным количеством карточек -->
+        <!-- <div class="controls">
+            <button class="control-btn" onclick="showOneCard()">Показать 1 карточку</button>
+            <button class="control-btn" onclick="showAllCards()">Показать все карточки</button>
+        </div> -->
+        
+        <div class="sections-grid" id="sectionsGrid">
+            <a href="pages/plants.html" class="section-card">
+                <img src="pages/images/Plant_cell.png" alt="КлеткаРастения" class="card-image">
+                <div class="card-content">
+                    <h2 class="card-title">Клетка Растения</h2>
+                    <p class="card-description">Ознакомьтесь с клеткой растения.</p>
+                    <div class="card-footer">2 модели</div>
+                </div>
+            </a>
+            
+            <a href="pages/shapes.html" class="section-card">
+                <img src="pages/images/stereo.jpg" alt="Фигуры" class="card-image">
+                <div class="card-content">
+                    <h2 class="card-title">Фигуры</h2>
+                    <p class="card-description">Ознакомьтесь с стереометрическими фигурами.</p>
+                    <div class="card-footer">13 фигур</div>
+                </div>
+            </a>
+            
+            <!-- <a href="about.html" class="section-card">
+                <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" alt="О компании" class="card-image">
+                <div class="card-content">
+                    <h2 class="card-title">О компании</h2>
+                    <p class="card-description">Узнайте больше о нашей компании, нашей миссии, ценностях и команде профессионалов.</p>
+                    <div class="card-footer">О компании</div>
+                </div>
+            </a>
+            
+            <a href="contacts.html" class="section-card">
+                <img src="https://images.unsplash.com/photo-1534536281715-e28d76689b4d?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" alt="Контакты" class="card-image">
+                <div class="card-content">
+                    <h2 class="card-title">Контакты</h2>
+                    <p class="card-description">Свяжитесь с нами любым удобным способом. Мы всегда рады ответить на ваши вопросы.</p>
+                    <div class="card-footer">Наши контакты</div>
+                </div>
+            </a> -->
+        </div>
+    </div>
+
+    <script>
+        // Функции для демонстрации работы с разным количеством карточек
+        function showOneCard() {
+            const grid = document.getElementById('sectionsGrid');
+            const cards = grid.querySelectorAll('.section-card');
+            
+            // Скрываем все карточки кроме первой
+            cards.forEach((card, index) => {
+                if (index === 0) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+        
+        function showAllCards() {
+            const grid = document.getElementById('sectionsGrid');
+            const cards = grid.querySelectorAll('.section-card');
+            
+            // Показываем все карточки
+            cards.forEach(card => {
+                card.style.display = 'flex';
+            });
+        }
+    </script>
+</body>
+</html>
