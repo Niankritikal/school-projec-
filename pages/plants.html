@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Клетка растения</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-image: url("bg.png");
+            min-height: 100vh;
+            display: flex;
+            padding: 20px;
+            color: white;
+            overflow-x: hidden;
+        }
+        
+        .ui-container {
+            width: 350px;
+            background-color: rgba(30, 30, 46, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            margin-right: 20px;
+            height: fit-content;
+            max-height: 95vh;
+            overflow-y: auto;
+        }
+        
+        .canvas-container {
+            flex: 1;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.0);
+            position: relative;
+            background: #1e1e2e;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+            color: #ffffff;
+        }
+        
+        .description {
+            text-align: center;
+            margin-bottom: 25px;
+            color: #a5a8d4;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .main-button {
+            background: linear-gradient(135deg, #6272a4, #44475a);
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .main-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, #7284b8, #555870);
+        }
+        
+        .main-button.active {
+            background: linear-gradient(135deg, #ff79c6, #bd93f9);
+        }
+        
+        .sub-container {
+            margin-left: 20px;
+            margin-top: 8px;
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+        
+        .sub-button {
+            background: linear-gradient(135deg, #44475a, #343746);
+            color: white;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .sub-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 7px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, #555870, #44475a);
+        }
+        
+        .sub-button.active {
+            background: linear-gradient(135deg, #50fa7b, #8be9fd);
+            color: #282a36;
+        }
+        
+        .arrow {
+            transition: transform 0.3s ease;
+            font-size: 0.8rem;
+        }
+        
+        .rotated {
+            transform: rotate(90deg);
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 25px;
+            color: #6272a4;
+            font-size: 0.85rem;
+        }
+        
+        .model-info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(134, 139, 167, 0.2);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 300px;
+            display: none;
+        }
+        
+        .model-info h3 {
+            color: #faf9fa;
+            margin-bottom: 8px;
+        }
+        
+        .model-info p {
+            color: #f8f8f2;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 1.2rem;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 100;
+        }
+        
+        .error {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ff5555;
+            font-size: 1.2rem;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div class="ui-container">
+        <h1>Клетка растения</h1>
+        
+        <p class="description">
+            Разделы
+        </p>
+        
+        <div class="button-container">
+            <!-- Основная кнопка -->
+            <button class="main-button" onclick="toggleSubsection(this, 'models')">
+                3D Модели
+                <span class="arrow">▶</span>
+            </button>
+            <div id="models" class="sub-container">
+                <!-- Подраздел -->
+                <button class="sub-button" onclick="toggleSubsection(this, 'vehicles')">
+                    Пока что работает только с подразделом, исправлю потом
+                    <span class="arrow">▶</span>
+                </button>
+                <div id="vehicles" class="sub-container">
+                    <button class="sub-button" onclick="loadModel('PlantCell', 'Клетка Растения', 'Клеееееетка.', 'models/plant_cell.glb', 800)">
+                        Клетка Растения
+                    </button>
+                    <button class="sub-button" onclick="loadModel('Vacuole', 'Вакуоль', 'Вакуолььььььь.', 'models/vacuole.glb', 7)">
+                        Вакуоль
+                    </button>
+                    <button class="sub-button" onclick="loadModel('Chloroplast', 'Хлоропласт', 'Он выглядел круче там, откуда я скачивал.', 'models/chloroplast.glb', 7)">
+                        Хлоропласт
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            Выберите модель для отображения
+        </div>
+    </div>
+
+    <div class="canvas-container" id="canvas-container">
+        <div class="loading" id="loading" style="display: none;">Загрузка модели...</div>
+        <div class="error" id="error" style="display: none;"></div>
+        <div class="model-info" id="model-info">
+            <h3 id="model-title">Название модели</h3>
+            <p id="model-description">Описание модели появится здесь</p>
+        </div>
+    </div>
+
+    <script>
+        // Three.js переменные
+        let scene, camera, renderer, controls;
+        let currentModel = null;
+        
+        // Инициализация Three.js сцены
+        function initThreeJS() {
+            const container = document.getElementById('canvas-container');
+            
+            // Создание сцены
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1e1e2e);
+            
+            // Создание камеры
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.z = 5;
+            
+            // Создание рендерера
+            renderer = new THREE.WebGLRenderer({ 
+                antialias: true,
+                alpha: true
+            });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            container.appendChild(renderer.domElement);
+            
+            // Настройка контролов
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            
+            // Добавление освещения
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(1, 1, 1);
+            scene.add(directionalLight);
+            
+            // Обработчик изменения размера окна
+            window.addEventListener('resize', onWindowResize, false);
+            
+            // Начальная анимация
+            animate();
+        }
+        
+        // Загрузка модели с улучшенной обработкой ошибок
+        function loadModel(modelId, title, description, modelPath, scaleMultiplier = 7) {
+            console.log("Попытка загрузки модели:", modelPath);
+            
+            // Показываем индикатор загрузки
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+            
+            // Удаляем предыдущую модель
+            if (currentModel) {
+                scene.remove(currentModel);
+                currentModel = null;
+            }
+            
+            // Деактивируем все кнопки и активируем текущую
+            deactivateAllButtons();
+            event.target.classList.add('active');
+            
+            // Создаем загрузчик
+            const loader = new THREE.GLTFLoader();
+            
+            // Загружаем модель с таймаутом
+            const loadTimeout = setTimeout(() => {
+                showError("Таймаут загрузки. Проверьте путь к файлу и сервер.");
+            }, 10000);
+            
+            loader.load(
+                modelPath,
+                // onLoad callback
+                function(gltf) {
+                    clearTimeout(loadTimeout);
+                    document.getElementById('loading').style.display = 'none';
+                    
+                    console.log("Модель успешно загружена:", gltf);
+                    
+                    // Добавляем модель в сцену
+                    currentModel = gltf.scene;
+                    scene.add(currentModel);
+                    
+                    // Центрируем и масштабируем модель с индивидуальным масштабом
+                    centerAndScaleModel(currentModel, scaleMultiplier);
+                    
+                    // Показываем информацию о модели
+                    document.getElementById('model-title').textContent = title;
+                    document.getElementById('model-description').textContent = description;
+                    document.getElementById('model-info').style.display = 'block';
+                    
+                    console.log("Модель добавлена в сцену");
+                },
+                // onProgress callback
+                function(xhr) {
+                    const percent = (xhr.loaded / xhr.total * 100);
+                    document.getElementById('loading').textContent = `Загрузка... ${percent.toFixed(1)}%`;
+                    console.log(`Загружено: ${percent.toFixed(1)}%`);
+                },
+                // onError callback
+                function(error) {
+                    clearTimeout(loadTimeout);
+                    document.getElementById('loading').style.display = 'none';
+                    
+                    console.error('Ошибка загрузки модели:', error);
+                    
+                    let errorMessage = "Ошибка загрузки модели: ";
+                    
+                    if (error.message.includes('404')) {
+                        errorMessage += "Файл не найден. Проверьте путь: " + modelPath;
+                    } else if (error.message.includes('CORS')) {
+                        errorMessage += "CORS ошибка. Используйте локальный сервер.";
+                    } else if (error.message.includes('parse')) {
+                        errorMessage += "Ошибка парсинга файла. Возможно файл поврежден.";
+                    } else {
+                        errorMessage += error.message;
+                    }
+                    
+                    showError(errorMessage);
+                }
+            );
+        }
+        
+        // Центрирование и масштабирование модели с индивидуальным масштабом
+        function centerAndScaleModel(model, scaleMultiplier) {
+            const box = new THREE.Box3().setFromObject(model);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+            
+            // Центрируем модель
+            model.position.x = -center.x;
+            model.position.y = -center.y;
+            model.position.z = -center.z;
+            
+            // Применяем индивидуальный масштаб для каждой модели
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const scale = scaleMultiplier / maxDim;
+            model.scale.setScalar(scale);
+            
+            // Настраиваем камеру
+            camera.position.z = maxDim * 1.5;
+            controls.update();
+        }
+        
+        // Показать ошибку
+        function showError(message) {
+            document.getElementById('error').textContent = message;
+            document.getElementById('error').style.display = 'block';
+            console.error(message);
+        }
+        
+        // Деактивировать все кнопки
+        function deactivateAllButtons() {
+            const buttons = document.querySelectorAll('.main-button, .sub-button');
+            buttons.forEach(button => {
+                button.classList.remove('active');
+            });
+        }
+        
+        // Переключение подразделов
+        function toggleSubsection(button, subsectionId) {
+            const subsection = document.getElementById(subsectionId);
+            const arrow = button.querySelector('.arrow');
+            
+            // Закрываем все другие подразделы на том же уровне
+            const parent = button.parentElement;
+            const siblings = parent.querySelectorAll('.sub-container');
+            siblings.forEach(sub => {
+                if (sub.id !== subsectionId) {
+                    sub.style.display = 'none';
+                    const subArrow = sub.previousElementSibling.querySelector('.arrow');
+                    if (subArrow) subArrow.classList.remove('rotated');
+                }
+            });
+            
+            // Переключаем текущий подраздел
+            if (subsection.style.display === 'block') {
+                subsection.style.display = 'none';
+                arrow.classList.remove('rotated');
+            } else {
+                subsection.style.display = 'block';
+                arrow.classList.add('rotated');
+            }
+            
+            // Активируем кнопку
+            deactivateAllButtons();
+            button.classList.add('active');
+        }
+        
+        function onWindowResize() {
+            const container = document.getElementById('canvas-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+        
+        // Анимация
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        // Инициализация при загрузке
+        window.onload = function() {
+            initThreeJS();
+        };
+    </script>
+</body>
+</html>
