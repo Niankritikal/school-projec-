@@ -100,6 +100,13 @@
             animation: fadeIn 0.4s ease;
         }
         
+        .sub-button-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
         .sub-button {
             background: linear-gradient(135deg, #44475a, #343746);
             color: white;
@@ -111,10 +118,10 @@
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2);
+            flex: 1;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
         }
         
         .sub-button:hover {
@@ -124,7 +131,61 @@
         }
         
         .sub-button.active {
+            background: linear-gradient(135deg, #ffb86c, #ff79c6);
+            color: #282a36;
+        }
+        
+        .expand-button {
+            background: linear-gradient(135deg, #343746, #282a36);
+            color: white;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .expand-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 7px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, #44475a, #343746);
+        }
+        
+        .expand-button.active {
             background: linear-gradient(135deg, #50fa7b, #8be9fd);
+            color: #282a36;
+        }
+        
+        .model-button {
+            background: linear-gradient(135deg, #343746, #282a36);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            margin-bottom: 6px;
+            text-align: left;
+            width: 100%;
+        }
+        
+        .model-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, #44475a, #343746);
+        }
+        
+        .model-button.active {
+            background: linear-gradient(135deg, #ffb86c, #ff79c6);
             color: #282a36;
         }
         
@@ -211,7 +272,7 @@
         <h1>Клетка растения</h1>
         
         <p class="description">
-            Разделы
+            Биология
         </p>
         
         <div class="button-container">
@@ -221,21 +282,18 @@
                 <span class="arrow">▶</span>
             </button>
             <div id="models" class="sub-container">
-                <!-- Подраздел -->
-                <button class="sub-button" onclick="toggleSubsection(this, 'vehicles')">
-                    Пока что работает только с подразделом, исправлю потом
-                    <span class="arrow">▶</span>
-                </button>
-                <div id="vehicles" class="sub-container">
-                    <button class="sub-button" onclick="loadModel('PlantCell', 'Клетка Растения', 'Клеееееетка.', 'models/plant_cell.glb', 800)">
+                <!-- Контейнер для кнопки "Другие модели" и кнопки раскрытия -->
+                <div class="sub-button-container">
+                    <button class="sub-button" id="other-models-btn" onclick="loadPlantCell()">
                         Клетка Растения
                     </button>
-                    <button class="sub-button" onclick="loadModel('Vacuole', 'Вакуоль', 'Вакуолььььььь.', 'models/vacuole.glb', 7)">
-                        Вакуоль
+                    <button class="expand-button" id="expand-btn" onclick="toggleOtherModelsList()">
+                        <span class="arrow">▶</span>
                     </button>
-                    <button class="sub-button" onclick="loadModel('Chloroplast', 'Хлоропласт', 'Он выглядел круче там, откуда я скачивал.', 'models/chloroplast.glb', 7)">
-                        Хлоропласт
-                    </button>
+                </div>
+                <!-- Контейнер для списка других моделей -->
+                <div id="other-models-list" class="sub-container">
+                    <!-- Кнопки других моделей будут добавлены здесь динамически -->
                 </div>
             </div>
         </div>
@@ -258,6 +316,33 @@
         // Three.js переменные
         let scene, camera, renderer, controls;
         let currentModel = null;
+        let currentModelId = null; // ID текущей модели
+        
+        // Определение моделей - упрощенные настройки масштаба
+        const plantCellModel = {
+            id: 'PlantCell',
+            title: 'Клетка Растения',
+            description: 'Эукариотическая структурно-функциональная единица растений, отличающаяся от клеток других организмов наличием прочной клеточной стенки, крупной центральной вакуоли и пластид (например, хлоропластов). Эта клетка способна к самостоятельному обмену веществ, росту, развитию и воспроизведению. ',
+            path: 'models/plant_cell.glb',
+            scale: 2.0 // Увеличиваем масштаб клетки растения
+        };
+        
+        const otherModels = [
+            {
+                id: 'Vacuole',
+                title: 'Вакуоль',
+                description: 'Мембранный органоид, содержащий клеточный сок. Занимает большую часть объема растительной клетки.',
+                path: 'models/vacuole.glb',
+                scale: 1.5 // Увеличиваем масштаб вакуоли
+            },
+            {
+                id: 'Chloroplast',
+                title: 'Хлоропласт',
+                description: 'Органоид растительной клетки, в котором происходит фотосинтез. Содержит хлорофилл.',
+                path: 'models/chloroplast.glb',
+                scale: 1.5 // Увеличиваем масштаб хлоропласта
+            }
+        ];
         
         // Инициализация Three.js сцены
         function initThreeJS() {
@@ -269,7 +354,7 @@
             
             // Создание камеры
             camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
-            camera.position.z = 5;
+            camera.position.set(0, 0, 10); // Устанавливаем камеру дальше
             
             // Создание рендерера
             renderer = new THREE.WebGLRenderer({ 
@@ -284,14 +369,20 @@
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
+            controls.minDistance = 1;
+            controls.maxDistance = 50;
             
             // Добавление освещения
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
             scene.add(ambientLight);
             
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(1, 1, 1);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+            directionalLight.position.set(5, 5, 5);
             scene.add(directionalLight);
+            
+            const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
+            directionalLight2.position.set(-5, -5, -5);
+            scene.add(directionalLight2);
             
             // Обработчик изменения размера окна
             window.addEventListener('resize', onWindowResize, false);
@@ -300,23 +391,77 @@
             animate();
         }
         
-        // Загрузка модели с улучшенной обработкой ошибок
-        function loadModel(modelId, title, description, modelPath, scaleMultiplier = 7) {
+        // Получение названия модели по ID
+        function getModelTitleById(modelId) {
+            if (modelId === 'PlantCell') return plantCellModel.title;
+            
+            const model = otherModels.find(m => m.id === modelId);
+            return model ? model.title : 'Неизвестная модель';
+        }
+        
+        // Переключение видимости списка других моделей
+        function toggleOtherModelsList() {
+            const otherModelsContainer = document.getElementById('other-models-list');
+            const expandBtn = document.getElementById('expand-btn');
+            const arrow = expandBtn.querySelector('.arrow');
+            
+            if (otherModelsContainer.style.display === 'block') {
+                otherModelsContainer.style.display = 'none';
+                arrow.classList.remove('rotated');
+                expandBtn.classList.remove('active');
+            } else {
+                otherModelsContainer.style.display = 'block';
+                arrow.classList.add('rotated');
+                expandBtn.classList.add('active');
+                
+                // Динамически создаем кнопки других моделей, если их еще нет
+                if (otherModelsContainer.children.length === 0) {
+                    createOtherModelButtons(otherModelsContainer);
+                }
+            }
+        }
+        
+        // Загрузка клетки растения
+        function loadPlantCell() {
+            console.log("Загрузка клетки растения...");
+            
+            const otherModelsBtn = document.getElementById('other-models-btn');
+            const expandBtn = document.getElementById('expand-btn');
+            
+            // Активируем кнопку "Другие модели"
+            deactivateAllButtons();
+            otherModelsBtn.classList.add('active');
+            expandBtn.classList.remove('active');
+            
+            // Деактивируем все кнопки моделей (чтобы ни одна другая модель не была активной)
+            deactivateAllModelButtons();
+            
+            // Загружаем модель
+            loadModel(
+                plantCellModel.id,
+                plantCellModel.title,
+                plantCellModel.description,
+                plantCellModel.path,
+                plantCellModel.scale
+            );
+        }
+        
+        // Загрузка любой модели - упрощенная версия
+        function loadModel(modelId, title, description, modelPath, modelScale = 1.0) {
             console.log("Попытка загрузки модели:", modelPath);
+            
+            // Устанавливаем текущую модель
+            currentModelId = modelId;
             
             // Показываем индикатор загрузки
             document.getElementById('loading').style.display = 'block';
             document.getElementById('error').style.display = 'none';
             
-            // Удаляем предыдущую модель
+            // Удаляем предыдущую модель (если есть)
             if (currentModel) {
                 scene.remove(currentModel);
                 currentModel = null;
             }
-            
-            // Деактивируем все кнопки и активируем текущую
-            deactivateAllButtons();
-            event.target.classList.add('active');
             
             // Создаем загрузчик
             const loader = new THREE.GLTFLoader();
@@ -337,22 +482,40 @@
                     
                     // Добавляем модель в сцену
                     currentModel = gltf.scene;
+                    
+                    // Упрощенное масштабирование
+                    currentModel.scale.setScalar(modelScale);
+                    
+                    // Центрируем модель
+                    const box = new THREE.Box3().setFromObject(currentModel);
+                    const center = box.getCenter(new THREE.Vector3());
+                    currentModel.position.x = -center.x;
+                    currentModel.position.y = -center.y;
+                    currentModel.position.z = -center.z;
+                    
+                    // Добавляем в сцену
                     scene.add(currentModel);
                     
-                    // Центрируем и масштабируем модель с индивидуальным масштабом
-                    centerAndScaleModel(currentModel, scaleMultiplier);
+                    // Настраиваем камеру
+                    const size = box.getSize(new THREE.Vector3());
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    camera.position.z = maxDim * 2.0; // Простая формула для расстояния камеры
+                    
+                    // Сбрасываем контролы
+                    controls.target.set(0, 0, 0);
+                    controls.update();
                     
                     // Показываем информацию о модели
                     document.getElementById('model-title').textContent = title;
                     document.getElementById('model-description').textContent = description;
                     document.getElementById('model-info').style.display = 'block';
                     
-                    console.log("Модель добавлена в сцену");
+                    console.log("Модель добавлена в сцену, масштаб:", modelScale);
                 },
                 // onProgress callback
                 function(xhr) {
                     const percent = (xhr.loaded / xhr.total * 100);
-                    document.getElementById('loading').textContent = `Загрузка... ${percent.toFixed(1)}%`;
+                    document.getElementById('loading').textContent = `Загрузка ${title}... ${percent.toFixed(1)}%`;
                     console.log(`Загружено: ${percent.toFixed(1)}%`);
                 },
                 // onError callback
@@ -379,27 +542,6 @@
             );
         }
         
-        // Центрирование и масштабирование модели с индивидуальным масштабом
-        function centerAndScaleModel(model, scaleMultiplier) {
-            const box = new THREE.Box3().setFromObject(model);
-            const center = box.getCenter(new THREE.Vector3());
-            const size = box.getSize(new THREE.Vector3());
-            
-            // Центрируем модель
-            model.position.x = -center.x;
-            model.position.y = -center.y;
-            model.position.z = -center.z;
-            
-            // Применяем индивидуальный масштаб для каждой модели
-            const maxDim = Math.max(size.x, size.y, size.z);
-            const scale = scaleMultiplier / maxDim;
-            model.scale.setScalar(scale);
-            
-            // Настраиваем камеру
-            camera.position.z = maxDim * 1.5;
-            controls.update();
-        }
-        
         // Показать ошибку
         function showError(message) {
             document.getElementById('error').textContent = message;
@@ -409,7 +551,15 @@
         
         // Деактивировать все кнопки
         function deactivateAllButtons() {
-            const buttons = document.querySelectorAll('.main-button, .sub-button');
+            const buttons = document.querySelectorAll('.main-button, .sub-button, .expand-button');
+            buttons.forEach(button => {
+                button.classList.remove('active');
+            });
+        }
+        
+        // Деактивировать все кнопки моделей
+        function deactivateAllModelButtons() {
+            const buttons = document.querySelectorAll('.model-button');
             buttons.forEach(button => {
                 button.classList.remove('active');
             });
@@ -443,6 +593,41 @@
             // Активируем кнопку
             deactivateAllButtons();
             button.classList.add('active');
+        }
+        
+        // Создание кнопок для других моделей
+        function createOtherModelButtons(container) {
+            otherModels.forEach(model => {
+                const button = document.createElement('button');
+                button.className = 'model-button';
+                button.textContent = model.title;
+                
+                button.onclick = () => {
+                    // Деактивируем кнопку "Другие модели"
+                    const otherModelsBtn = document.getElementById('other-models-btn');
+                    otherModelsBtn.classList.remove('active');
+                    
+                    // Деактивируем кнопку раскрытия
+                    const expandBtn = document.getElementById('expand-btn');
+                    expandBtn.classList.remove('active');
+                    
+                    // Деактивируем все кнопки моделей
+                    deactivateAllModelButtons();
+                    
+                    // Активируем текущую кнопку модели
+                    button.classList.add('active');
+                    
+                    // Загружаем выбранную модель (клетка растения при этом пропадет)
+                    loadModel(
+                        model.id,
+                        model.title,
+                        model.description,
+                        model.path,
+                        model.scale
+                    );
+                };
+                container.appendChild(button);
+            });
         }
         
         function onWindowResize() {
