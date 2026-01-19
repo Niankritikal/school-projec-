@@ -333,14 +333,21 @@
                 title: 'Вакуоль',
                 description: 'Мембранный органоид, содержащий клеточный сок. Занимает большую часть объема растительной клетки.',
                 path: 'models/vacuole.glb',
-                scale: 1.5 // Увеличиваем масштаб вакуоли
+                scale: 1.5
             },
             {
                 id: 'Chloroplast',
                 title: 'Хлоропласт',
                 description: 'Органоид растительной клетки, в котором происходит фотосинтез. Содержит хлорофилл.',
                 path: 'models/chloroplast.glb',
-                scale: 1.5 // Увеличиваем масштаб хлоропласта
+                scale: 1.5
+            },
+            {
+                id: 'GoljiApparatus',
+                title: 'Аппарат Гольджи',
+                description: 'органелла эукариотических клеток, представляющая собой стопки мембранных мешочков (цистерн) и пузырьков, которая модифицирует, сортирует и упаковывает белки и липиды, поступившие из эндоплазматического ретикулума, для их дальнейшей транспортировки (секреции из клетки или в другие органеллы). Он играет ключевую роль в "почтовом отделении" клетки, формируя лизосомы и участвуя в синтезе полисахаридов.',
+                path: 'models/golji.glb',
+                scale: 1.5
             }
         ];
         
@@ -396,7 +403,7 @@
             if (modelId === 'PlantCell') return plantCellModel.title;
             
             const model = otherModels.find(m => m.id === modelId);
-            return model ? model.title : 'Неизвестная модель';
+            return model ? model.title : 'Клетка растения';
         }
         
         // Переключение видимости списка других моделей
@@ -468,7 +475,7 @@
             
             // Загружаем модель с таймаутом
             const loadTimeout = setTimeout(() => {
-                showError("Таймаут загрузки. Проверьте путь к файлу и сервер.");
+                showError("Загрузка не удалась.");
             }, 10000);
             
             loader.load(
@@ -510,7 +517,7 @@
                     document.getElementById('model-description').textContent = description;
                     document.getElementById('model-info').style.display = 'block';
                     
-                    console.log("Модель добавлена в сцену, масштаб:", modelScale);
+                    console.log("Модель добавлена в сцену", modelScale);
                 },
                 // onProgress callback
                 function(xhr) {
