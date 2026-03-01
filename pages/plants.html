@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Клетка растения</title>
+    <title>Клетка растения — иерархия Гольджи → лизосома</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -25,7 +25,7 @@
         }
         
         .ui-container {
-            width: 350px;
+            width: 380px;
             background-color: rgba(30, 30, 46, 0.2);
             backdrop-filter: blur(10px);
             border-radius: 15px;
@@ -93,6 +93,7 @@
             background: linear-gradient(135deg, #ff79c6, #bd93f9);
         }
         
+        /* Контейнер для подразделов (общий стиль) */
         .sub-container {
             margin-left: 20px;
             margin-top: 8px;
@@ -100,6 +101,7 @@
             animation: fadeIn 0.4s ease;
         }
         
+        /* Горизонтальный контейнер для кнопки + стрелка раскрытия */
         .sub-button-container {
             display: flex;
             align-items: center;
@@ -135,6 +137,7 @@
             color: #282a36;
         }
         
+        /* Кнопка-стрелка для раскрытия (маленькая) */
         .expand-button {
             background: linear-gradient(135deg, #343746, #282a36);
             color: white;
@@ -189,6 +192,35 @@
             color: #282a36;
         }
         
+        /* Стиль для кнопки лизосомы (подраздел Гольджи) — как у обычных model-button, но с отступом */
+        .golgi-child-button {
+            background: linear-gradient(135deg, #2d2f3f, #1e2030);
+            color: white;
+            border: none;
+            padding: 10px 16px 10px 32px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            margin-bottom: 6px;
+            margin-left: 20px;
+            width: calc(100% - 20px);
+            text-align: left;
+        }
+        
+        .golgi-child-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, #3d4055, #2c2f44);
+        }
+        
+        .golgi-child-button.active {
+            background: linear-gradient(135deg, #ff9f4f, #ff6f9f);
+            color: #14151f;
+        }
+        
         .arrow {
             transition: transform 0.3s ease;
             font-size: 0.8rem;
@@ -216,6 +248,7 @@
             font-size: 0.85rem;
         }
         
+        /* Блоки с информацией о модели */
         .model-info {
             position: absolute;
             bottom: 20px;
@@ -251,8 +284,8 @@
         }
         
         .model-picture {
-            width: 300px;
-            height: 300px;
+            width: 280px;
+            height: 280px;
             border-radius: 10px;
             overflow: hidden;
             border: 3px solid rgba(255, 255, 255, 0.3);
@@ -272,7 +305,7 @@
             backdrop-filter: blur(10px);
             padding: 15px;
             border-radius: 10px;
-            width: 300px;
+            width: 280px;
             display: none;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
@@ -333,25 +366,26 @@
         </p>
         
         <div class="button-container">
-            <!-- Основная кнопка -->
+            <!-- Основная кнопка 3D Модели (прежняя надпись) -->
             <button class="main-button" onclick="toggleSubsection(this, 'models')">
                 3D Модели
                 <span class="arrow">▶</span>
             </button>
+            
+            <!-- Подраздел первого уровня: список основных элементов -->
             <div id="models" class="sub-container">
-                <!-- Контейнер для кнопки "Другие модели" и кнопки раскрытия -->
+                <!-- Строка: Клетка растения + стрелка (как было раньше) -->
                 <div class="sub-button-container">
-                    <button class="sub-button" id="other-models-btn" onclick="loadPlantCell()">
-                        Клетка Растения
+                    <button class="sub-button" id="plant-cell-btn" onclick="loadPlantCell()">
+                        Клетка растения
                     </button>
-                    <button class="expand-button" id="expand-btn" onclick="toggleOtherModelsList()">
+                    <button class="expand-button" id="expand-org-btn" onclick="toggleOrganellesList()">
                         <span class="arrow">▶</span>
                     </button>
                 </div>
-                <!-- Контейнер для списка других моделей -->
-                <div id="other-models-list" class="sub-container">
-                    <!-- Кнопки других моделей будут добавлены здесь динамически -->
-                </div>
+                
+                <!-- Контейнер для списка органоидов (открывается стрелкой) -->
+                <div id="organelles-list" class="sub-container"></div>
             </div>
         </div>
         
@@ -370,9 +404,7 @@
             </div>
             <div class="model-functions" id="model-functions">
                 <h4>Функции</h4>
-                <ul id="functions-list">
-                    <!-- Функции будут добавлены динамически -->
-                </ul>
+                <ul id="functions-list"></ul>
             </div>
         </div>
         
@@ -383,34 +415,34 @@
     </div>
 
     <script>
-        // Three.js переменные
+        // --- Three.js initialization ---
         let scene, camera, renderer, controls;
         let currentModel = null;
-        let currentModelId = null; // ID текущей модели
-        
-        // Определение моделей - упрощенные настройки масштаба
+
+        // Модель клетки растения
         const plantCellModel = {
             id: 'PlantCell',
-            title: 'Клетка Растения',
-            description: 'Эукариотическая структурно-функциональная единица растений, отличающаяся от клеток других организмов наличием прочной клеточной стенки, крупной центральной вакуоли и пластид (например, хлоропластов). Эта клетка способна к самостоятельному обмену веществ, росту, развитию и воспроизведению.',
+            title: 'Клетка растения',
+            description: 'Эукариотическая структурно-функциональная единица растений, отличающаяся от клеток других организмов наличием прочной клеточной стенки, крупной центральной вакуоли и пластид (например, хлоропластов).',
             functions: [
-                'Фотосинтез: В хлоропластах неорганические вещества (вода и углекислый газ) преобразуются в органические (глюкозу) с выделением кислорода.',
-                'Структурная (опорная): Твердая клеточная стенка из целлюлозы создает форму, каркас и обеспечивает механическую защиту.',
-                'Тургорное давление: Вакуоль с клеточным соком поддерживает напряженное состояние клетки, обеспечивая упругость тканей.',
-                'Запасающая: Клетка накапливает питательные вещества (крахмал, масла) и воду.',
-                'Рост и размножение: Клетки делятся, обеспечивая рост растения и передачу генетической информации.',
+                'Фотосинтез: В хлоропластах неорганические вещества преобразуются в органические.',
+                'Структурная (опорная): Твердая клеточная стенка из целлюлозы создает форму.',
+                'Тургорное давление: Вакуоль поддерживает напряженное состояние клетки.',
+                'Запасающая: Накопление питательных веществ и воды.',
+                'Рост и размножение: Клетки делятся, обеспечивая рост растения.',
                 'Транспорт: Перенос воды и питательных веществ между клетками.'
             ],
             path: 'models/plant_cell.glb',
             picture: "pictures/plantcell.jpg",
             scale: 2.0
         };
-        
-        const otherModels = [
+
+        // Модели органоидов (прежние названия: Ядро, Вакуоль, Хлоропласт, Аппарат Гольджи, Митохондрия)
+        const organelleModels = [
             {
                 id: 'Nucleus',
                 title: 'Ядро',
-                description: 'Содержит наследственную информацию (ДНК) в виде хромосом, контролирует все процессы жизнедеятельности, от роста до деления, и образует рибосомы в ядрышке. Оно окружено двойной ядерной оболочкой с порами для обмена веществами, а его главные компоненты — хроматин, ядрышко и ядерный сок.',
+                description: 'Содержит наследственную информацию (ДНК) в виде хромосом, контролирует все процессы жизнедеятельности.',
                 functions: [
                     'Хранение и передача ДНК',
                     'Контроль клеточного деления',
@@ -435,7 +467,7 @@
                 ],
                 path: 'models/vacuole.glb',
                 picture: "pictures/vacuole.png",
-                scale: 1.5
+                scale: 4.5
             },
             {
                 id: 'Chloroplast',
@@ -450,12 +482,12 @@
                 ],
                 path: 'models/chloroplast.glb',
                 picture: "pictures/chloroplast.jpg",
-                scale: 1.5
+                scale: 9.5
             },
             {
-                id: 'GoljiApparatus',
+                id: 'GolgiApparatus',
                 title: 'Аппарат Гольджи',
-                description: 'Органелла эукариотических клеток, представляющая собой стопки мембранных мешочков (цистерн) и пузырьков, которая модифицирует, сортирует и упаковывает белки и липиды, поступившие из эндоплазматического ретикулума, для их дальнейшей транспортировки (секреции из клетки или в другие органеллы).',
+                description: 'Органелла эукариотических клеток, представляющая собой стопки мембранных мешочков (цистерн) и пузырьков, которая модифицирует, сортирует и упаковывает белки и липиды.',
                 functions: [
                     'Модификация белков',
                     'Сортировка и упаковка веществ',
@@ -465,39 +497,69 @@
                 ],
                 path: 'models/golji.glb',
                 picture: "pictures/golji.png",
-                scale: 1.5
+                scale: 3.0,
+                // У Гольджи будет дочерний элемент — лизосома
+                child: {
+                    id: 'Lysosome',
+                    title: 'Лизосома',
+                    description: 'Небольшой мембранный органоид, содержащий гидролитические ферменты. "Клеточный желудок". Образуется в комплексе Гольджи.',
+                    functions: [
+                        'Внутриклеточное переваривание (эндоцитоз)',
+                        'Аутофагия (удаление старых органелл)',
+                        'Автолиз (саморазрушение клетки)',
+                        'Защитная функция (уничтожение бактерий)',
+                        'Участие в метаболизме'
+                    ],
+                    path: 'models/lysosome.glb',
+                    picture: "pictures/lysosome.png",
+                    scale: 6.5
+                }
+            },
+            {
+                id: 'Mitochondria',
+                title: 'Митохондрия',
+                description: 'Энергетическая станция клетки. Производит АТФ в процессе клеточного дыхания.',
+                functions: [
+                    'Производство энергии (АТФ)',
+                    'Клеточное дыхание',
+                    'Апоптоз (регулируемая гибель клеток)',
+                    'Гомеостаз кальция',
+                    'Участие в метаболизме',
+                    "Термогенез"
+                ],
+                path: 'models/mitochondria.glb',
+                picture: "pictures/mitochondria.png",
+                scale: 0.4
             }
         ];
-        
-        // Инициализация Three.js сцены
+
+        // --- Данные для кнопки Гольджи и его дочерней лизосомы ---
+        // Будем хранить ссылку на контейнер с лизосомой
+        let golgiChildContainer = null;
+        // Флаг, открыт ли подраздел Гольджи
+        let golgiExpanded = false;
+
+        // Инициализация Three.js
         function initThreeJS() {
             const container = document.getElementById('canvas-container');
             
-            // Создание сцены
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x1e1e2e);
             
-            // Создание камеры
             camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
             camera.position.set(0, 0, 10);
             
-            // Создание рендерера
-            renderer = new THREE.WebGLRenderer({ 
-                antialias: true,
-                alpha: true
-            });
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(container.clientWidth, container.clientHeight);
             renderer.outputEncoding = THREE.sRGBEncoding;
             container.appendChild(renderer.domElement);
             
-            // Настройка контролов
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
             controls.minDistance = 1;
             controls.maxDistance = 50;
             
-            // Добавление освещения
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
             scene.add(ambientLight);
             
@@ -509,44 +571,230 @@
             directionalLight2.position.set(-5, -5, -5);
             scene.add(directionalLight2);
             
-            // Обработчик изменения размера окна
             window.addEventListener('resize', onWindowResize, false);
-            
-            // Начальная анимация
             animate();
         }
-        
-        // Получение названия модели по ID
-        function getModelTitleById(modelId) {
-            if (modelId === 'PlantCell') return plantCellModel.title;
-            
-            const model = otherModels.find(m => m.id === modelId);
-            return model ? model.title : 'Клетка растения';
-        }
-        
-        // Переключение видимости списка других моделей
-        function toggleOtherModelsList() {
-            const otherModelsContainer = document.getElementById('other-models-list');
-            const expandBtn = document.getElementById('expand-btn');
+
+        // Переключение видимости списка органоидов (по стрелке у "Клетка растения")
+        function toggleOrganellesList() {
+            const organellesContainer = document.getElementById('organelles-list');
+            const expandBtn = document.getElementById('expand-org-btn');
             const arrow = expandBtn.querySelector('.arrow');
             
-            if (otherModelsContainer.style.display === 'block') {
-                otherModelsContainer.style.display = 'none';
+            if (organellesContainer.style.display === 'block') {
+                organellesContainer.style.display = 'none';
                 arrow.classList.remove('rotated');
                 expandBtn.classList.remove('active');
             } else {
-                otherModelsContainer.style.display = 'block';
+                organellesContainer.style.display = 'block';
                 arrow.classList.add('rotated');
                 expandBtn.classList.add('active');
                 
-                // Динамически создаем кнопки других моделей, если их еще нет
-                if (otherModelsContainer.children.length === 0) {
-                    createOtherModelButtons(otherModelsContainer);
+                // Если список ещё пуст, создаём кнопки органоидов
+                if (organellesContainer.children.length === 0) {
+                    createOrganelleButtons(organellesContainer);
                 }
             }
         }
-        
-        // Функция для обновления картинки и функций модели
+
+        // Создание кнопок органоидов внутри #organelles-list
+        function createOrganelleButtons(container) {
+            organelleModels.forEach(org => {
+                // Контейнер для строки органоида: кнопка + возможно стрелка (только для Гольджи)
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'sub-button-container';
+                rowDiv.style.marginBottom = '4px';
+                
+                // Кнопка самого органоида
+                const btn = document.createElement('button');
+                btn.className = 'model-button';
+                btn.textContent = org.title;
+                btn.style.flex = '1';
+                btn.setAttribute('data-id', org.id);
+                
+                btn.onclick = () => {
+                    // Деактивировать все активные кнопки
+                    deactivateAllModelButtons();
+                    deactivateGolgiChildButton();
+                    btn.classList.add('active');
+                    
+                    // Если у органоида есть дочерний элемент (Гольджи), то при клике на сам Гольджи мы не меняем состояние стрелки,
+                    // но загружаем модель Гольджи. Дочерняя лизосома остаётся как есть.
+                    if (org.child) {
+                        // Просто загружаем Гольджи
+                        loadOrganelleModel(org);
+                    } else {
+                        // Скрываем дочерний контейнер Гольджи, если он был открыт
+                        hideGolgiChild();
+                        loadOrganelleModel(org);
+                    }
+                };
+                
+                rowDiv.appendChild(btn);
+                
+                // Если это Аппарат Гольджи — добавляем маленькую стрелку справа, как у "Клетка растения"
+                if (org.id === 'GolgiApparatus') {
+                    const expandGolgiBtn = document.createElement('button');
+                    expandGolgiBtn.className = 'expand-button';
+                    expandGolgiBtn.innerHTML = '<span class="arrow">▶</span>';
+                    expandGolgiBtn.setAttribute('data-golgi-expand', '');
+                    
+                    expandGolgiBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        toggleGolgiChild(org.child, rowDiv);
+                        // Меняем состояние стрелки
+                        const arrowSpan = expandGolgiBtn.querySelector('.arrow');
+                        if (golgiExpanded) {
+                            arrowSpan.classList.remove('rotated');
+                            expandGolgiBtn.classList.remove('active');
+                        } else {
+                            arrowSpan.classList.add('rotated');
+                            expandGolgiBtn.classList.add('active');
+                        }
+                        golgiExpanded = !golgiExpanded;
+                    };
+                    
+                    rowDiv.appendChild(expandGolgiBtn);
+                }
+                
+                container.appendChild(rowDiv);
+            });
+        }
+
+        // Переключение видимости дочерней кнопки (лизосомы) под Гольджи
+        function toggleGolgiChild(childModel, referenceRow) {
+            if (golgiChildContainer) {
+                // Если уже открыт, закрываем
+                golgiChildContainer.remove();
+                golgiChildContainer = null;
+            } else {
+                // Создаём контейнер с кнопкой лизосомы
+                golgiChildContainer = document.createElement('div');
+                golgiChildContainer.className = 'golgi-child-container';
+                
+                const childBtn = document.createElement('button');
+                childBtn.className = 'golgi-child-button';
+                childBtn.textContent = childModel.title;  // "Лизосома"
+                
+                childBtn.onclick = () => {
+                    deactivateAllModelButtons();
+                    deactivateGolgiChildButton();
+                    childBtn.classList.add('active');
+                    
+                    // Загружаем лизосому
+                    updateModelPictureAndFunctions(childModel.picture, childModel.functions);
+                    loadModel(childModel.id, childModel.title, childModel.description, childModel.path, childModel.scale);
+                };
+                
+                golgiChildContainer.appendChild(childBtn);
+                
+                // Вставляем после строки Гольджи
+                referenceRow.parentNode.insertBefore(golgiChildContainer, referenceRow.nextSibling);
+            }
+        }
+
+        // Скрыть дочерний контейнер Гольджи (если открыт)
+        function hideGolgiChild() {
+            if (golgiChildContainer) {
+                golgiChildContainer.remove();
+                golgiChildContainer = null;
+                golgiExpanded = false;
+                // Сбросить состояние стрелки у Гольджи
+                const golgiExpandBtn = document.querySelector('[data-golgi-expand]');
+                if (golgiExpandBtn) {
+                    const arrowSpan = golgiExpandBtn.querySelector('.arrow');
+                    arrowSpan.classList.remove('rotated');
+                    golgiExpandBtn.classList.remove('active');
+                }
+            }
+        }
+
+        // Загрузка модели органоида (общая функция)
+        function loadOrganelleModel(org) {
+            updateModelPictureAndFunctions(org.picture, org.functions);
+            loadModel(org.id, org.title, org.description, org.path, org.scale);
+        }
+
+        // Загрузка клетки растения
+        function loadPlantCell() {
+            deactivateAllButtons();
+            document.getElementById('plant-cell-btn').classList.add('active');
+            document.getElementById('expand-org-btn').classList.remove('active');
+            
+            deactivateAllModelButtons();
+            hideGolgiChild();
+            
+            updateModelPictureAndFunctions(plantCellModel.picture, plantCellModel.functions);
+            loadModel(plantCellModel.id, plantCellModel.title, plantCellModel.description, plantCellModel.path, plantCellModel.scale);
+        }
+
+        // Общая функция загрузки модели через GLTF
+        function loadModel(modelId, title, description, modelPath, modelScale = 1.0) {
+            console.log("Загрузка модели:", modelPath);
+            
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+            
+            if (currentModel) {
+                scene.remove(currentModel);
+                currentModel = null;
+            }
+            
+            const loader = new THREE.GLTFLoader();
+            const loadTimeout = setTimeout(() => {
+                showError("Загрузка не удалась (таймаут).");
+            }, 10000);
+            
+            loader.load(
+                modelPath,
+                function(gltf) {
+                    clearTimeout(loadTimeout);
+                    document.getElementById('loading').style.display = 'none';
+                    
+                    console.log("Модель успешно загружена:", gltf);
+                    currentModel = gltf.scene;
+                    currentModel.scale.setScalar(modelScale);
+                    
+                    const box = new THREE.Box3().setFromObject(currentModel);
+                    const center = box.getCenter(new THREE.Vector3());
+                    currentModel.position.x = -center.x;
+                    currentModel.position.y = -center.y;
+                    currentModel.position.z = -center.z;
+                    
+                    scene.add(currentModel);
+                    
+                    const size = box.getSize(new THREE.Vector3());
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    camera.position.z = maxDim * 2.0;
+                    
+                    controls.target.set(0, 0, 0);
+                    controls.update();
+                    
+                    document.getElementById('model-title').textContent = title;
+                    document.getElementById('model-description').textContent = description;
+                    document.getElementById('model-info').style.display = 'block';
+                },
+                function(xhr) {
+                    const percent = (xhr.loaded / xhr.total * 100);
+                    document.getElementById('loading').textContent = `Загрузка ${title}... ${percent.toFixed(1)}%`;
+                },
+                function(error) {
+                    clearTimeout(loadTimeout);
+                    document.getElementById('loading').style.display = 'none';
+                    console.error('Ошибка загрузки модели:', error);
+                    let errorMessage = "Ошибка загрузки модели: ";
+                    if (error.message.includes('404')) {
+                        errorMessage += "Файл не найден. Проверьте путь: " + modelPath;
+                    } else if (error.message.includes('CORS')) {
+                        errorMessage += "CORS ошибка. Используйте локальный сервер.";
+                    } else {
+                        errorMessage += error.message;
+                    }
+                    showError(errorMessage);
+                }
+            );
+        }
+
         function updateModelPictureAndFunctions(picturePath, functions) {
             const pictureContainer = document.getElementById('model-picture');
             const functionsContainer = document.getElementById('model-functions');
@@ -561,7 +809,6 @@
             }
             
             if (functions && functions.length > 0) {
-                // Очищаем и заполняем список функций
                 functionsList.innerHTML = '';
                 functions.forEach(func => {
                     const li = document.createElement('li');
@@ -573,171 +820,28 @@
                 functionsContainer.style.display = 'none';
             }
         }
-        
-        // Загрузка клетки растения
-        function loadPlantCell() {
-            console.log("Загрузка клетки растения...");
-            
-            const otherModelsBtn = document.getElementById('other-models-btn');
-            const expandBtn = document.getElementById('expand-btn');
-            
-            // Активируем кнопку "Другие модели"
-            deactivateAllButtons();
-            otherModelsBtn.classList.add('active');
-            expandBtn.classList.remove('active');
-            
-            // Деактивируем все кнопки моделей
-            deactivateAllModelButtons();
-            
-            // Обновляем картинку и функции
-            updateModelPictureAndFunctions(plantCellModel.picture, plantCellModel.functions);
-            
-            // Загружаем модель
-            loadModel(
-                plantCellModel.id,
-                plantCellModel.title,
-                plantCellModel.description,
-                plantCellModel.path,
-                plantCellModel.scale
-            );
-        }
-        
-        // Загрузка любой модели
-        function loadModel(modelId, title, description, modelPath, modelScale = 1.0) {
-            console.log("Попытка загрузки модели:", modelPath);
-            
-            // Устанавливаем текущую модель
-            currentModelId = modelId;
-            
-            // Показываем индикатор загрузки
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('error').style.display = 'none';
-            
-            // Удаляем предыдущую модель (если есть)
-            if (currentModel) {
-                scene.remove(currentModel);
-                currentModel = null;
-            }
-            
-            // Создаем загрузчик
-            const loader = new THREE.GLTFLoader();
-            
-            // Загружаем модель с таймаутом
-            const loadTimeout = setTimeout(() => {
-                showError("Загрузка не удалась.");
-            }, 10000);
-            
-            loader.load(
-                modelPath,
-                // onLoad callback
-                function(gltf) {
-                    clearTimeout(loadTimeout);
-                    document.getElementById('loading').style.display = 'none';
-                    
-                    console.log("Модель успешно загружена:", gltf);
-                    
-                    // Добавляем модель в сцену
-                    currentModel = gltf.scene;
-                    
-                    // Упрощенное масштабирование
-                    currentModel.scale.setScalar(modelScale);
-                    
-                    // Центрируем модель
-                    const box = new THREE.Box3().setFromObject(currentModel);
-                    const center = box.getCenter(new THREE.Vector3());
-                    currentModel.position.x = -center.x;
-                    currentModel.position.y = -center.y;
-                    currentModel.position.z = -center.z;
-                    
-                    // Добавляем в сцену
-                    scene.add(currentModel);
-                    
-                    // Настраиваем камеру
-                    const size = box.getSize(new THREE.Vector3());
-                    const maxDim = Math.max(size.x, size.y, size.z);
-                    camera.position.z = maxDim * 2.0;
-                    
-                    // Сбрасываем контролы
-                    controls.target.set(0, 0, 0);
-                    controls.update();
-                    
-                    // Показываем информацию о модели
-                    document.getElementById('model-title').textContent = title;
-                    document.getElementById('model-description').textContent = description;
-                    document.getElementById('model-info').style.display = 'block';
-                    
-                    console.log("Модель добавлена в сцену", modelScale);
-                },
-                // onProgress callback
-                function(xhr) {
-                    const percent = (xhr.loaded / xhr.total * 100);
-                    document.getElementById('loading').textContent = `Загрузка ${title}... ${percent.toFixed(1)}%`;
-                    console.log(`Загружено: ${percent.toFixed(1)}%`);
-                },
-                // onError callback
-                function(error) {
-                    clearTimeout(loadTimeout);
-                    document.getElementById('loading').style.display = 'none';
-                    
-                    console.error('Ошибка загрузки модели:', error);
-                    
-                    let errorMessage = "Ошибка загрузки модели: ";
-                    
-                    if (error.message.includes('404')) {
-                        errorMessage += "Файл не найден. Проверьте путь: " + modelPath;
-                    } else if (error.message.includes('CORS')) {
-                        errorMessage += "CORS ошибка. Используйте локальный сервер.";
-                    } else if (error.message.includes('parse')) {
-                        errorMessage += "Ошибка парсинга файла. Возможно файл поврежден.";
-                    } else {
-                        errorMessage += error.message;
-                    }
-                    
-                    showError(errorMessage);
-                }
-            );
-        }
-        
-        // Показать ошибку
+
         function showError(message) {
             document.getElementById('error').textContent = message;
             document.getElementById('error').style.display = 'block';
-            console.error(message);
         }
-        
-        // Деактивировать все кнопки
+
         function deactivateAllButtons() {
-            const buttons = document.querySelectorAll('.main-button, .sub-button, .expand-button');
-            buttons.forEach(button => {
-                button.classList.remove('active');
-            });
+            document.querySelectorAll('.main-button, .sub-button, .expand-button').forEach(btn => btn.classList.remove('active'));
         }
-        
-        // Деактивировать все кнопки моделей
+
         function deactivateAllModelButtons() {
-            const buttons = document.querySelectorAll('.model-button');
-            buttons.forEach(button => {
-                button.classList.remove('active');
-            });
+            document.querySelectorAll('.model-button').forEach(btn => btn.classList.remove('active'));
         }
-        
-        // Переключение подразделов
+
+        function deactivateGolgiChildButton() {
+            document.querySelectorAll('.golgi-child-button').forEach(btn => btn.classList.remove('active'));
+        }
+
         function toggleSubsection(button, subsectionId) {
             const subsection = document.getElementById(subsectionId);
             const arrow = button.querySelector('.arrow');
             
-            // Закрываем все другие подразделы на том же уровне
-            const parent = button.parentElement;
-            const siblings = parent.querySelectorAll('.sub-container');
-            siblings.forEach(sub => {
-                if (sub.id !== subsectionId) {
-                    sub.style.display = 'none';
-                    const subArrow = sub.previousElementSibling.querySelector('.arrow');
-                    if (subArrow) subArrow.classList.remove('rotated');
-                }
-            });
-            
-            // Переключаем текущий подраздел
             if (subsection.style.display === 'block') {
                 subsection.style.display = 'none';
                 arrow.classList.remove('rotated');
@@ -746,64 +850,23 @@
                 arrow.classList.add('rotated');
             }
             
-            // Активируем кнопку
             deactivateAllButtons();
             button.classList.add('active');
         }
-        
-        // Создание кнопок для других моделей
-        function createOtherModelButtons(container) {
-            otherModels.forEach(model => {
-                const button = document.createElement('button');
-                button.className = 'model-button';
-                button.textContent = model.title;
-                
-                button.onclick = () => {
-                    // Деактивируем кнопку "Другие модели"
-                    const otherModelsBtn = document.getElementById('other-models-btn');
-                    otherModelsBtn.classList.remove('active');
-                    
-                    // Деактивируем кнопку раскрытия
-                    const expandBtn = document.getElementById('expand-btn');
-                    expandBtn.classList.remove('active');
-                    
-                    // Деактивируем все кнопки моделей
-                    deactivateAllModelButtons();
-                    
-                    // Активируем текущую кнопку модели
-                    button.classList.add('active');
-                    
-                    // Обновляем картинку и функции
-                    updateModelPictureAndFunctions(model.picture, model.functions);
-                    
-                    // Загружаем выбранную модель
-                    loadModel(
-                        model.id,
-                        model.title,
-                        model.description,
-                        model.path,
-                        model.scale
-                    );
-                };
-                container.appendChild(button);
-            });
-        }
-        
+
         function onWindowResize() {
             const container = document.getElementById('canvas-container');
             camera.aspect = container.clientWidth / container.clientHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(container.clientWidth, container.clientHeight);
         }
-        
-        // Анимация
+
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
             renderer.render(scene, camera);
         }
-        
-        // Инициализация при загрузке
+
         window.onload = function() {
             initThreeJS();
         };
